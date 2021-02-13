@@ -19,7 +19,7 @@ Resources:
           sudo chmod 777 ./aws_ir.py
           sudo yum install python3 -y
           sudo pip3 install pip --upgrade
-          pip install boto3 --user
+          pip install boto3
       Tags:
         - Key: Name
           Value: ResponseVM
