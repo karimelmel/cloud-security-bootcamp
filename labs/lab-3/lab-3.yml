@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: > 
+  Deploys an S3 Bucket only allowing the principals specified in NotPrincipal access. Note: No wildcards can be used in the NotPrincipal. 
+  Note: In order to access the S3 Bucket, the prinicpal accessing the bucket must also have permissions granted.
+
+  https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html
+  
+Resources:  
+  S3BucketExample:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+         - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  S3BucketPolicyExample:
+    DependsOn: S3BucketExample
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref S3BucketExample
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Deny
+            Action:
+              - 's3:*'
+            NotPrincipal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Resource:
+            - !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref S3BucketExample
+            - !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref S3BucketExample
+                - '/*'
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/24
+      EnableDnsSupport: true
+      Tags:
+        - Key: Exposure
+          Value: Internal
+
+Outputs:
+  S3BucketExample:
+    Value: !Ref S3BucketExample
+    Description: Name of the S3 bucket
+    Export:
+      Name: S3BucketExample

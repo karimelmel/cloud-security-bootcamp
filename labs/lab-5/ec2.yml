@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploys resources required for Lab 5
+Resources: 
+  EC2InstanceIMDSv1:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: False
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: ami-0a262e3ac12949132
+      InstanceType: t2.micro
+      Monitoring: true
+      SubnetId: !ImportValue "PublicSubnet1"
+      SecurityGroupIds:
+        - !ImportValue "NoIngressSecurityGroup"
+      Tags:
+        - Key: Name
+          Value: EC2-A
+        - Key: IMDS
+          Value: Version1
+
+  EC2InstanceIMDSv2:
+    Type: AWS::EC2::Instance
+    DependsOn: IMDSv2LaunchTemplate
+    Properties:
+      DisableApiTermination: False
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: ami-0a262e3ac12949132
+      InstanceType: t2.micro
+      LaunchTemplate:
+        LaunchTemplateName: IMDSV2
+        Version: 1
+      Monitoring: true
+      SubnetId: !ImportValue "PublicSubnet1"
+      SecurityGroupIds:
+        - !ImportValue "NoIngressSecurityGroup"
+      Tags:
+        - Key: Name
+          Value: EC2-B
+        - Key: IMDS
+          Value: Version2
+
+  IMDSv2LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: IMDSV2
+      LaunchTemplateData:
+        MetadataOptions:
+          HttpEndpoint: enabled
+          HttpPutResponseHopLimit: 1
+          HttpTokens: required
+
+  InstanceSSMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "ec2.amazonaws.com"
+              Action: "sts:AssumeRole"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess"
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: InstanceSSMProfile
+      Path: /
+      Roles: 
+        - !Ref InstanceSSMRole

@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploys resources required for Lab 7
+Resources: 
+  ResponseVM:
+    Type: AWS::EC2::Instance
+    Properties:
+      DisableApiTermination: False
+      IamInstanceProfile: !Ref InstanceIRProfile
+      ImageId: ami-0fc970315c2d38f01
+      InstanceType: t2.micro
+      Monitoring: true
+      SubnetId: !ImportValue "PublicSubnet1"
+      SecurityGroupIds:
+        - !ImportValue "NoIngressSecurityGroup"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          curl https://gist.githubusercontent.com/karimelmel/fee67320b190d17ea972cd1ce0c71e37/raw > aws_ir.py
+          sudo chmod 777 ./aws_ir.py
+          sudo yum install python3 -y
+          sudo pip3 install pip --upgrade
+          pip install boto3 --user
+      Tags:
+        - Key: Name
+          Value: ResponseVM
+
+  InstanceIRRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "ec2.amazonaws.com"
+              Action: "sts:AssumeRole"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess"
+        - !Ref IRPolicy
+
+  InstanceIRProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: InstanceIRProfile
+      Path: /
+      Roles: 
+        - !Ref InstanceIRRole
+
+    IRPolicy:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: "IR-Engineering-Response"
+            Path: "/"
+            PolicyDocument: |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                    "iam:PutRolePolicy",
+                                    "iam:UpdateAccessKey"
+                                    ],
+                            "Resource": "*"
+                        }
+                    ]
+                }
+
+DummyCfnReaderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument: 
+          Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: "ec2.amazonaws.com"
+              Action: "sts:AssumeRole"
+      ManagedPolicyArns: 
+        - "arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess"

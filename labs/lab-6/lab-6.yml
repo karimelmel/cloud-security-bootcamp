@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: > 
+  Deploys an S3 Bucket only allowing the principals specified.
+
+  https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html
+  
+Resources:  
+  ForensicsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+         - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  ForensicsBucketPolicy:
+    DependsOn: ForensicsBucket
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref ForensicsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:*'
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:root
+            Resource:
+            - !Join 
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref ForensicsBucket
+            - !Join
+              - ''
+              - - 'arn:aws:s3:::'
+                - !Ref ForensicsBucket
+                - '/*'
+
+Outputs:
+  ForensicsBucket:
+    Value: !Ref ForensicsBucket
+    Description: Name of the S3 bucket
+    Export:
+      Name: ForensicsBucket
