@@ -48,27 +48,27 @@ Resources:
       Roles: 
         - !Ref InstanceIRRole
 
-    IRPolicy:
-        Type: "AWS::IAM::ManagedPolicy"
-        Properties:
-            ManagedPolicyName: "IR-Engineering-Response"
-            Path: "/"
-            PolicyDocument: |
-                {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Action": [
-                                    "iam:PutRolePolicy",
-                                    "iam:UpdateAccessKey"
-                                    ],
-                            "Resource": "*"
-                        }
-                    ]
-                }
+  IRPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+        ManagedPolicyName: "IR-Engineering-Response"
+        Path: "/"
+        PolicyDocument: |
+            {
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                                "iam:PutRolePolicy",
+                                "iam:UpdateAccessKey"
+                                ],
+                        "Resource": "*"
+                    }
+                ]
+            }
 
-DummyCfnReaderRole:
+  DummyCfnReaderRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument: 
