@@ -1,55 +1,52 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Deploys resources required for Lab 5
+Description: Deploys resources required for Traffic Mirroring
 Resources: 
-  EC2InstanceIMDSv1:
+  RecipientVM:
     Type: AWS::EC2::Instance
     Properties:
       DisableApiTermination: False
-      IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-0a262e3ac12949132
-      InstanceType: t2.micro
+      ImageId: ami-0fc970315c2d38f01
+      InstanceType: t3a.micro
+      IamInstanceProfile: !Ref MonitoringProfile
       Monitoring: true
       SubnetId: !ImportValue "PublicSubnet1"
       SecurityGroupIds:
         - !ImportValue "NoIngressSecurityGroup"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          sudo -s
+          amazon-linux-extras install -y epel
+          yum install -y suricata
+          mkdir /var/lib/suricata/rules
+          echo 'alert tcp any any -> any any (msg:"TCP traffic detected"; sid:200001; rev:1;)' > /var/lib/suricata/rules/suricata.rules
+          suricata -c /etc/suricata/suricata.yaml -k none -i eth0 -D
       Tags:
         - Key: Name
-          Value: EC2-A
-        - Key: IMDS
-          Value: Version1
+          Value: Recipient
 
-  EC2InstanceIMDSv2:
+  SenderVM:
     Type: AWS::EC2::Instance
-    DependsOn: IMDSv2LaunchTemplate
     Properties:
       DisableApiTermination: False
-      IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-0a262e3ac12949132
-      InstanceType: t2.micro
-      LaunchTemplate:
-        LaunchTemplateName: IMDSV2
-        Version: 1
+      ImageId: ami-0fc970315c2d38f01
+      InstanceType: t3a.micro
+      IamInstanceProfile: !Ref MonitoringProfile
       Monitoring: true
       SubnetId: !ImportValue "PublicSubnet1"
       SecurityGroupIds:
         - !ImportValue "NoIngressSecurityGroup"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          sudo yum install python3 -y
+          sudo pip3 install pip --upgrade
       Tags:
         - Key: Name
-          Value: EC2-B
-        - Key: IMDS
-          Value: Version2
+          Value: Sender
 
-  IMDSv2LaunchTemplate:
-    Type: AWS::EC2::LaunchTemplate
-    Properties:
-      LaunchTemplateName: IMDSV2
-      LaunchTemplateData:
-        MetadataOptions:
-          HttpEndpoint: enabled
-          HttpPutResponseHopLimit: 1
-          HttpTokens: required
 
-  MonoitoringRole:
+  MonitoringRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument: 

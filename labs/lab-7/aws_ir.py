@@ -16,7 +16,7 @@ def disable_aws_access_keys(access_key_to_deactivate=access_key_to_deactivate,us
 disable_aws_access_keys()
 
 
-rolename='Admin-EC2Role'
+rolename=''
 
 def disable_aws_role(rolename=rolename):
     iam = boto3.client('iam')
