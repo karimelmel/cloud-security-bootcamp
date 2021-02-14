@@ -11,3 +11,6 @@ In this lab we will learn to use cfn_nag together with GitHub Actions to perform
 5. Now follow the guidance provided on how to use cfn_nag to suppress these warnings.
 6. Remember the format shown in the presentation where you use Metadata in the CloudFormation template to suppress this.
 7. Try commiting the code which will trigger the action. Make sure that the action deploys correctly without any warnings before proceeding.
+
+
+Note: The stack deployed through this lab is required for future labs. Do not delete the stack until complete with all labs.
