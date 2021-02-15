@@ -14,3 +14,6 @@ Later you will try applying a Systems Manager Document to an instance that confi
 8. Run the document by choosing "Specify instances manually". Select your instances (EC2-A and EC2-B). 
 9. Select one of the instances
 10. Inspect the output of this document.
+
+### Bonus
+1. Upload 'ApplyPowershellSecurityBaseline.ps1' as a SSM Document and apply it to a running Windows server. Inspect the output of the content
