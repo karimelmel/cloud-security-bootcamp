@@ -49,7 +49,7 @@ Resources:
           HttpPutResponseHopLimit: 1
           HttpTokens: required
 
-  MonoitoringRole:
+  InstanceRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument: 
@@ -62,10 +62,10 @@ Resources:
       ManagedPolicyArns: 
         - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 
-  MonitoringProfile:
+  InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties: 
-      InstanceProfileName: MonitoringProfile
+      InstanceProfileName: InstanceProfile
       Path: /
       Roles: 
-        - !Ref MonitoringRole
+        - !Ref InstanceRole
