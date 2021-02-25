@@ -3,8 +3,8 @@ In this lab we will learn to use cfn_nag together with GitHub Actions to perform
 
 ## Instructions
 1. Access your fork of the repository
-2. Update your "main.yml" file to include deployment of the vpc.yml in labs/lab-4/vpc.yml.
-3. Add an a Step to also use cfn_nag action to scan the file. https://github.com/marketplace/actions/cfn-nag-action 
+2. Update your GitHub Actions yaml (in .github/workflows/) file to include deployment of the vpc.yml in labs/lab-4/vpc.yml.
+4. Add an a Step to also use cfn_nag action to scan the file. https://github.com/marketplace/actions/cfn-nag-action 
     a. If you want to have a look at the solution: https://gist.github.com/karimelmel/39f62d8e59096d5a322b20e4ec9d2ba6
 
 4. Look at the errors thrown by cfn_nag in your GitHub actions. Go to AWS console and delete the stack. 
