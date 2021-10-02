@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: > 
+  Enables AWS IAM Access Analyzer + Deploys a Secret in Secrets Manager with corresponding KMS key and resource policy that allows public access
+
+Resources:
+  Analyzer:
+    Type: AWS::AccessAnalyzer::Analyzer
+    Properties:
+      Type: ACCOUNT
+
+  KMSKey:
+    Type: AWS::KMS::Key
+    DependsOn: Analyzer
+    Properties:
+      KeyPolicy:
+        Id: keyvuln1
+        Version: 2012-10-17
+        Statement:
+          - Resource: "*"
+            Effect: Allow
+            Principal: "*"
+            Action: "kms:*"
+  
+  KMSAlias:
+    Type: AWS::KMS::Alias
+    DependsOn: Analyzer
+    Properties:
+      AliasName: alias/keyvuln1
+      TargetKeyId: !Ref KMSKey
+
+  Secret:
+    Type: AWS::SecretsManager::Secret
+    DependsOn: Analyzer
+    Properties: 
+      Description: String
+      KmsKeyId: !Ref KMSAlias
+      GenerateSecretString: 
+        PasswordLength: 16
+
+  SecretPolicy:
+    Type: AWS::SecretsManager::ResourcePolicy
+    DependsOn: Analyzer
+    Properties:
+      BlockPublicPolicy: False
+      SecretId: !Ref Secret
+      ResourcePolicy:
+        Version: 2012-10-17
+        Statement:
+          - Resource: !Ref Secret
+            Action: Secretsmanager:GetSecretValue
+            Effect: Allow
+            Principal: '*'
