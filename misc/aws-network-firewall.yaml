@@ -1,0 +1,418 @@
+Description:  This template deploys an AWS Network Firewall stack. Borrowed from AWS https://aws.amazon.com/blogs/security/hands-on-walkthrough-of-the-aws-network-firewall-flexible-rules-engine/
+
+Parameters:
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+Resources:
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+        GroupDescription: Allow instances to get to SSM Systems Manager
+        VpcId: !Ref VPC
+        SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 10.0.0.0/24
+        SecurityGroupEgress:
+          - IpProtocol: -1
+            FromPort: -1
+            ToPort: -1
+            CidrIp: "0.0.0.0/0"
+
+  SSMEndpoint1:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+        PrivateDnsEnabled: true
+        SecurityGroupIds: 
+          - !Ref EndpointSecurityGroup
+        ServiceName: 
+          !Join
+            - ''
+            - - 'com.amazonaws.'
+              - !Ref AWS::Region
+              - '.ssm'
+        SubnetIds: 
+          - !Ref ProtectedSubnet
+        VpcEndpointType: Interface
+        VpcId: !Ref VPC
+
+  SSMEndpoint2:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+        PrivateDnsEnabled: true
+        SecurityGroupIds: 
+          - !Ref EndpointSecurityGroup
+        ServiceName: 
+          !Join
+            - ''
+            - - 'com.amazonaws.'
+              - !Ref AWS::Region
+              - '.ec2messages'
+        SubnetIds: 
+          - !Ref ProtectedSubnet
+        VpcEndpointType: Interface
+        VpcId: !Ref VPC
+
+  SSMEndpoint3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties: 
+        PrivateDnsEnabled: true
+        SecurityGroupIds: 
+          - !Ref EndpointSecurityGroup
+        ServiceName: 
+          !Join
+            - ''
+            - - 'com.amazonaws.'
+              - !Ref AWS::Region
+              - '.ssmmessages'
+        SubnetIds: 
+          - !Ref ProtectedSubnet
+        VpcEndpointType: Interface
+        VpcId: !Ref VPC
+  
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: "Network Firewall VPC"
+
+  VPCFlowLogGroup:
+    DependsOn:
+      - AWSNetworkFirewallLogGroupKMSkey
+    Type: AWS::Logs::LogGroup
+    Properties:
+      KmsKeyId: !GetAtt AWSNetworkFirewallLogGroupKMSkey.Arn
+      RetentionInDays: 3
+  
+  VPCFlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt 'VPCFlowLogRole.Arn'
+      LogGroupName: !Ref VPCFlowLogGroup
+      ResourceId : !Ref VPC
+      ResourceType: VPC
+      TrafficType: ALL
+
+  VPCFlowLogRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'vpc-flow-logs.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Policies:
+      - PolicyName: 'flowlogs-policy'
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:PutLogEvents'
+            - 'logs:DescribeLogGroups'
+            - 'logs:DescribeLogStreams'
+            Resource: '*'
+
+  FirewallSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.0.1.0/28
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: Firewall Subnet
+
+  ProtectedSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: 10.0.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: Protected Subnet
+  
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'InternetGateway-', !Ref 'AWS::StackName' ] ]
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  FirewallRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Firewall-RT
+
+  ProtectedRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Protected-RT
+
+  IGWRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: IGW-RT
+
+  FirewallRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref FirewallRouteTable
+      SubnetId: !Ref FirewallSubnet
+
+  ProtectedRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref ProtectedRouteTable
+      SubnetId: !Ref ProtectedSubnet
+
+  IGWRouteTableAssociation:
+    Type: AWS::EC2::GatewayRouteTableAssociation
+    Properties:
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref IGWRouteTable
+
+  InternetRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref FirewallRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  NetworkFirewall:
+    Type: AWS::NetworkFirewall::Firewall
+    Properties:
+      FirewallName: AWSNetworkFirewall
+      FirewallPolicyArn: !Ref NetworkFirewallPolicy
+      VpcId: !Ref VPC
+      SubnetMappings:
+        - SubnetId: !Ref FirewallSubnet
+      Description: Demo Network Firewall
+      Tags:
+        - Key: Name
+          Value: AWSNetworkFirewall
+
+  NetworkFirewallPolicy:
+    Type: 'AWS::NetworkFirewall::FirewallPolicy'
+    Properties:
+      FirewallPolicyName: DemoFirewallPolicy
+      FirewallPolicy:
+        StatelessDefaultActions:
+          - 'aws:forward_to_sfe'
+        StatelessFragmentDefaultActions:
+          - 'aws:forward_to_sfe'
+        StatelessRuleGroupReferences:
+          - ResourceArn: !Ref StatelessRuleGroup
+            Priority: 100
+        StatefulRuleGroupReferences:
+          - ResourceArn: !Ref StatefulRuleGroup
+      Description: Demo FirewallPolicy
+      Tags:
+        - Key: Name
+          Value: DemoFirewallPolicy
+
+  StatelessRuleGroup:
+    Type: 'AWS::NetworkFirewall::RuleGroup'
+    Properties:
+      RuleGroupName: StatelessRuleGroup
+      Type: STATELESS
+      Capacity: 50
+      RuleGroup:
+        RulesSource:
+          StatelessRulesAndCustomActions:
+            StatelessRules:
+              - RuleDefinition:
+                  MatchAttributes:
+                    Sources:
+                      - AddressDefinition: 0.0.0.0/0
+                    Destinations:
+                      - AddressDefinition: 0.0.0.0/0
+                  Actions:
+                    - aws:forward_to_sfe
+                Priority: 10
+
+  StatefulRuleGroup:
+    Type: 'AWS::NetworkFirewall::RuleGroup'
+    Properties:
+      RuleGroupName: StatefulRuleGroup
+      Type: STATEFUL
+      Capacity: 50
+      RuleGroup:
+        RulesSource:
+          RulesString: >-
+            pass http any any -> any any
+            (msg: "All traffic is permitted"; sid: 100000; rev:1;)
+
+  NetworkFirewallLogging:
+    Type: AWS::NetworkFirewall::LoggingConfiguration
+    Properties: 
+      FirewallArn: !Ref NetworkFirewall
+      FirewallName: AWSNetworkFirewall
+      LoggingConfiguration:
+        LogDestinationConfigs:
+          - LogType: ALERT
+            LogDestinationType: CloudWatchLogs
+            LogDestination:
+              logGroup: !Ref AWSNetworkFirewallLogGroup
+
+  AWSNetworkFirewallLogGroup:
+    DependsOn:
+      - AWSNetworkFirewallLogGroupKMSkey
+    Type: AWS::Logs::LogGroup
+    Properties:
+      KmsKeyId: !GetAtt AWSNetworkFirewallLogGroupKMSkey.Arn
+      RetentionInDays: 3
+
+  AWSNetworkFirewallLogGroupKMSkey:
+    Type: AWS::KMS::Key
+    Properties:
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: key-default-1
+        Statement:
+        - Sid: Allow administration of the key
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Join:
+              - ''
+              - - 'arn:aws:iam::'
+                - Ref: AWS::AccountId
+                - :root
+          Action: kms:*
+          Resource: '*'
+        - Sid: Allow use of the key
+          Effect: Allow
+          Principal:
+            Service:
+              Fn::Join:
+              - ''
+              - - 'logs.'
+                - Ref: AWS::Region
+                - .amazonaws.com
+          Action:
+          - kms:Encrypt*
+          - kms:Decrypt*
+          - kms:ReEncrypt*
+          - kms:GenerateDataKey*
+          - kms:Describe*
+          Resource: '*'
+
+  EgressRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: 
+        !Ref ProtectedRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      VpcEndpointId: !Select [1, !Split [":", !Select [0, !GetAtt NetworkFirewall.EndpointIds]]]
+
+  InboundRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: 
+        !Ref IGWRouteTable
+      DestinationCidrBlock: 10.0.0.0/24
+      VpcEndpointId: !Select [1, !Split [":", !Select [0, !GetAtt NetworkFirewall.EndpointIds]]]
+      
+  IAMRoleSSM:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: SSM_access
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  SSMInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      InstanceProfileName: SSM_access
+      Path: "/"
+      Roles: 
+        - Ref: "IAMRoleSSM"
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for app server
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: "0.0.0.0/0"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: "0.0.0.0/0"
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: "0.0.0.0/0"
+      VpcId: !Ref VPC
+
+  WebServer:
+    DependsOn:
+      - InboundRoute
+      - EgressRoute
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: t3.micro
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      SubnetId: !Ref ProtectedSubnet
+      IamInstanceProfile: SSM_access
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd.x86_64
+          systemctl start httpd.service
+          systemctl enable httpd.service
+          echo "Hello World from $(hostname -f)!" > /var/www/html/index.html
+      Tags:
+        - Key: Name
+          Value: !Join [ '', [ 'WebServer-', !Ref 'AWS::StackName' ] ]
+
+Outputs:
+  WebServerURL:
+    Value: !Join [ '', [ 'http://', !GetAtt WebServer.PublicDnsName ] ]
