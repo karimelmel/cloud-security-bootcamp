@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: > 
+  Enables AWS GuardDuty with email notification on alerts
+
+Resources:
+  CWLogGroupForCloudTrail:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: "CloudTrailLogs"
+      RetentionInDays: 90
+  GuardDuty:
+    Type: "AWS::GuardDuty::Detector"
+    Properties:
+      Enable: true
+      FindingPublishingFrequency: FIFTEEN_MINUTES
+      DataSources:
+        S3Logs:
+          Enable: true
+
+  GuardDutySNS:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      Subscription:
+        - Endpoint: "example@example.com"
+          Protocol: "email"
+      TopicName: "sns-topic"
+
+  GuardDutyEventRule:
+    Type: "AWS::Events::Rule"
+    Properties:
+      Name: "detect-guardduty-finding"
+      Description: "A CloudWatch Event Rule that triggers on Amazon GuardDuty findings. The Event Rule can be used to trigger notifications or remediative actions using AWS Lambda."
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref GuardDutySNS
+          Id: "target-id1"
+      EventPattern:
+        detail-type:
+          - "GuardDuty Finding"
+        source:
+          - "aws.guardduty"
