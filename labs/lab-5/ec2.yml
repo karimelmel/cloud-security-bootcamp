@@ -6,7 +6,7 @@ Resources:
     Properties:
       DisableApiTermination: False
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-0a262e3ac12949132
+      ImageId: ami-05cd35b907b4ffe77
       InstanceType: t2.micro
       Monitoring: true
       SubnetId: !ImportValue "PublicSubnet1"
@@ -24,7 +24,7 @@ Resources:
     Properties:
       DisableApiTermination: False
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-0a262e3ac12949132
+      ImageId: ami-05cd35b907b4ffe77
       InstanceType: t2.micro
       LaunchTemplate:
         LaunchTemplateName: IMDSV2
