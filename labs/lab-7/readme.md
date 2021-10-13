@@ -20,6 +20,18 @@ First, we will deploy a new EC2 instance. The instance will have the script aws_
 10. Go to Console and look at the policies associated with the role. 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 Hint 1:
 
 
