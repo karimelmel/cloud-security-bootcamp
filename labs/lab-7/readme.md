@@ -21,4 +21,6 @@ First, we will deploy a new EC2 instance. The instance will have the script aws_
 
 
 Hint 1:
+
+
 <img width="742" alt="Screen Shot 2021-10-13 at 9 49 16 AM" src="https://user-images.githubusercontent.com/26272119/137090248-f7512789-13ba-418d-a0bb-d88efc944cd6.png">
