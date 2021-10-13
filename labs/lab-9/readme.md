@@ -9,9 +9,9 @@ The resource policy for the Secret in Secrets Manager is vulnerable as it alllow
    "Statement": [
       {
          "Resource": "*",
-         "Effect": "Allow"
-         "Principal": "*",
-         "Action": "kms:*"
+         "Action": "Secretsmanager:GetSecretValue",
+         "Effect": "Allow",
+         "Principal": "*"
       }
    ]
 }
@@ -25,10 +25,9 @@ The resource policy for the Secret in Secrets Manager is vulnerable as it alllow
 4. Go to AWS console - CloudFormation and deploy the stack
 5. Once the stack has finished deploying, go to IAM - Access Analyzer and review the findings. 
 6. Try remediating the vulnerable resources and see if the alert disappears.
-7. Once the finding has been remediate go to IAM - Access Analyzer 
+7. Once the finding has been remediated go to IAM - Access Analyzer and verify it has been resolved.
 
-
-
+<img width="1282" alt="Screen Shot 2021-10-13 at 8 34 31 AM" src="https://user-images.githubusercontent.com/26272119/137079871-4f2d9f3f-624f-4f5a-a47c-e6523011175d.png">
 
 
 Hint 1: You need to change the resource policy by restricting it to a role in your account or <accountid>:root (all authenticated principals)
@@ -52,3 +51,5 @@ Hint 3: The below policy will remediate the finding. Note that you must replace 
 }
 ```
 
+
+  
