@@ -18,26 +18,6 @@ Resources:
         - Key: IMDS
           Value: Version1
 
-  EC2InstanceIMDSv2:
-    Type: AWS::EC2::Instance
-    DependsOn: IMDSv2LaunchTemplate
-    Properties:
-      DisableApiTermination: False
-      IamInstanceProfile: !Ref InstanceProfile
-      ImageId: ami-0e9c222e1a75c8738
-      InstanceType: t2.micro
-      LaunchTemplate:
-        LaunchTemplateName: IMDSV2
-        Version: 1
-      Monitoring: true
-      SubnetId: !ImportValue "PublicSubnet1"
-      SecurityGroupIds:
-        - !ImportValue "NoIngressSecurityGroup"
-      Tags:
-        - Key: Name
-          Value: EC2-B
-        - Key: IMDS
-          Value: Version2
 
   IMDSv2LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
