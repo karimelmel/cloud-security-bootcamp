@@ -2,6 +2,7 @@ import boto3
 
 access_key_to_deactivate=''
 username=''
+rolename=''
 
 def disable_aws_access_keys(access_key_to_deactivate=access_key_to_deactivate,username=username):
     iam = boto3.resource('iam')
@@ -16,7 +17,7 @@ def disable_aws_access_keys(access_key_to_deactivate=access_key_to_deactivate,us
 disable_aws_access_keys()
 
 
-rolename=''
+
 
 def disable_aws_role(rolename=rolename):
     iam = boto3.client('iam')
