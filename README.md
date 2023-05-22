@@ -1,4 +1,7 @@
 # cloud-security-bootcamp
+
+This repository is no longer maintained.
+---
 This repository will contain resources for labs to the course Cloud Security Engineering bootcamp hosted exclusively for HackCon #16. 
 
 Labs are available for anyone that want to learn more about AWS + Infrastructure as Code + Security.
